@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Petit Rituel - 1814</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+        body {
+            background-color: #000;
+            font-family: 'Press Start 2P', cursive;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            color: #00ff00;
+        }
+
+        #game-container {
+            width: 90%;
+            height: 90%;
+            background-color: #000;
+            border: 4px solid #00ff00;
+            box-shadow: 0 0 30px rgba(0, 255, 0, 0.5);
+            position: relative;
+            overflow: hidden;
+            padding: 20px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Effet CRT (Rétro) */
+        #game-container::before {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            z-index: 2;
+            background-size: 100% 2px, 3px 100%;
+            pointer-events: none;
+        }
+
+        .screen {
+            text-align: center;
+            width: 100%;
+            display: none;
+            z-index: 3;
+        }
+
+        h1 {
+            color: #00ff00;
+            font-size: 40px;
+            margin-bottom: 40px;
+            text-shadow: 4px 4px #003300;
+            letter-spacing: 4px;
+        }
+
+        p {
+            font-size: 24px;
+            line-height: 1.6;
+            margin-bottom: 30px;
+            letter-spacing: 2px;
+            color: #fff;
+        }
+
+        .btn {
+            background-color: #000;
+            color: #00ff00;
+            border: 3px solid #00ff00;
+            padding: 15px;
+            font-family: 'Press Start 2P', cursive;
+            font-size: 18px;
+            cursor: pointer;
+            margin: 10px;
+            text-transform: uppercase;
+            transition: all 0.1s;
+            letter-spacing: 2px;
+            width: 90%;
+        }
+
+        .btn:hover {
+            background-color: #00ff00;
+            color: #000;
+        }
+
+        .btn:active {
+            transform: translate(4px, 4px);
+        }
+
+        .options-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 15px;
+            width: 90%;
+        }
+
+        .option-btn {
+            font-size: 14px;
+            padding: 10px;
+            line-height: 1.4;
+            letter-spacing: 1px;
+            text-align: left;
+        }
+
+        .question-text {
+            color: #ffff00;
+            margin-bottom: 20px;
+            font-size: 20px;
+            letter-spacing: 2px;
+            background-color: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border: 2px solid #ffff00;
+        }
+
+        .game-image {
+            width: 80%;
+            height: 250px;
+            object-fit: contain;
+            border: 3px solid #00ff00;
+            margin-bottom: 20px;
+            background-color: #111;
+        }
+
+        #score {
+            position: absolute;
+            top: 20px;
+            right: 40px;
+            color: #00ff00;
+            font-size: 20px;
+            z-index: 4;
+            letter-spacing: 2px;
+        }
+
+        .correct {
+            background-color: #00ff00 !important;
+            color: #000 !important;
+        }
+
+        .wrong {
+            background-color: #ff0000 !important;
+            color: #fff !important;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <div id="score">SCORE: 0</div>
+
+        <!-- Écran de démarrage -->
+        <div id="start-screen" class="screen" style="display: block;">
+            <h1>PETIT RITUEL</h1>
+            <p>France, 1814.</p>
+            <button class="btn" onclick="startGame()">START</button>
+        </div>
+
+        <!-- Écran de contexte -->
+        <div id="context-screen" class="screen">
+            <p>1814. Napoléon perd des batailles et dépense l'argent des impôts dans la guerre, tandis que la faim se multiplie.</p>
+            <p>Décryptez ces symboles pour découvrir le destin de la France.</p>
+            <button class="btn" onclick="showQuestion(1)">CONTINUER</button>
+        </div>
+
+        <!-- Écran de question -->
+        <div id="question-screen" class="screen">
+            <div id="q-content"></div>
+        </div>
+
+        <!-- Écran de fin -->
+        <div id="end-screen" class="screen">
+            <h1>FIN</h1>
+            <p id="final-score"></p>
+            <button class="btn" onclick="location.reload()">REJOUER</button>
+        </div>
+    </div>
+
+    <script>
+        // URLs des images
+        const IMAGE_LV = "./501.jpg"; 
+        const IMAGE_ZOOM = "./501.jpg"; 
+        const IMAGE_REPLACE = "./q3.jpg"; 
+
+        let currentQuestion = 0;
+        let score = 0;
+
+        const questions = [
+            {
+                type: "image",
+                src: IMAGE_LV,
+                text: "Qui est ce personnage ?",
+                options: ["Louis XVIII", "Napoléon II", "Louis-Philippe Ier", "Charles X"],
+                correct: 0
+            },
+            {
+                type: "image",
+                src: IMAGE_ZOOM,
+                text: "Quel est le symbole traditionnel de la dynastie des Bourbons?",
+                options: ["L'Aigle impérial", "La Fleur de Lys", "Le Coq gaulois", "Le Phénix"],
+                correct: 1
+            },
+            {
+                type: "image",
+                src: IMAGE_REPLACE,
+                text: "Cette image représente...",
+                options: [
+                    "La victoire de Napoléon à Waterloo en 1809",
+                    "La restauration de la monarchie en 1814",
+                    "La proclamation de la Première République en 1810",
+                    "L'invasion de la France par les armées russes en 1810"
+                ],
+                correct: 1
+            },
+            {
+                type: "text",
+                text: "Le Congrès de Vienne décide...",
+                options: [
+                    "L'établissement d'une République à vie",
+                    "Le partage de la France entre l'Autriche et la Russie",
+                    "La mise en place d'un Directoire militaire",
+                    "Le retour de la monarchie constitutionnelle en faveur de Louis XVIII"
+                ],
+                correct: 3
+            }
+        ];
+
+        function startGame() {
+            document.getElementById('start-screen').style.display = 'none';
+            document.getElementById('context-screen').style.display = 'block';
+        }
+
+        function showQuestion(index) {
+            document.getElementById('context-screen').style.display = 'none';
+            document.getElementById('question-screen').style.display = 'block';
+            currentQuestion = index;
+            renderQuestion();
+        }
+
+        function renderQuestion() {
+            const q = questions[currentQuestion - 1];
+            const container = document.getElementById('q-content');
+            
+            let html = `<div class="question-text">QUESTION ${currentQuestion}/4 : ${q.text}</div>`;
+            
+            if (q.type === "image") {
+                let imgStyle = "";
+                // Recadrage spécifique pour la question 2 : focus sur la veste (centre-bas)
+                if (currentQuestion === 2) {
+                    imgStyle = "clip-path: inset(30% 10% 10% 10%); object-position: center bottom;";
+                }
+                html += `<img src="${q.src}" class="game-image" style="${imgStyle}" alt="Symbole">`;
+            }
+
+            html += `<div class="options-grid">`;
+            q.options.forEach((opt, i) => {
+                html += `<button class="btn option-btn" onclick="checkAnswer(${i})">${opt}</button>`;
+            });
+            html += `</div>`;
+
+            container.innerHTML = html;
+        }
+
+        function checkAnswer(selected) {
+            const q = questions[currentQuestion - 1];
+            const buttons = document.querySelectorAll('.option-btn');
+            
+            buttons.forEach(btn => btn.disabled = true);
+
+            if (selected === q.correct) {
+                buttons[selected].classList.add('correct');
+                score += 100;
+            } else {
+                buttons[selected].classList.add('wrong');
+                buttons[q.correct].classList.add('correct');
+            }
+
+            document.getElementById('score').innerText = `SCORE: ${score}`;
+
+            setTimeout(() => {
+                if (currentQuestion < 4) {
+                    currentQuestion++;
+                    renderQuestion();
+                } else {
+                    document.getElementById('question-screen').style.display = 'none';
+                    document.getElementById('end-screen').style.display = 'block';
+                    document.getElementById('final-score').innerText = `Votre score final : ${score} / 400`;
+                }
+            }, 1500);
+        }
+    </script>
+</body>
+</html>
